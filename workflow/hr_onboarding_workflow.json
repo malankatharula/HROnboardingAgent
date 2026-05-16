@@ -1,0 +1,241 @@
+{
+  "name": "HR Onboarding Agent",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "hr-onboarding",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -288,
+        -32
+      ],
+      "id": "f92df12e-3a89-411b-9492-40418c6ec3ad",
+      "name": "Webhook",
+      "webhookId": "a2f3a79f-dae9-49a5-ba23-3f10763dac27"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are an HR onboarding assistant. Follow the user's instructions exactly. No markdown, no labels, no extra text.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"New employee details:\\nName: {{ $json.body.fullName }}\\nPosition: {{ $json.body.position }}\\nDepartment: {{ $json.body.department }}\\nStart Date: {{ $json.body.startDate }}\\nManager: {{ $json.body.manager }}\\n\\nWrite a professional welcome email body (3-4 sentences, no subject line, no labels, no markdown, plain prose only). Then on a new line write exactly \\\"---CHECKLIST---\\\" followed by an HTML ordered list (<ol><li>...</li></ol>) of 8 onboarding tasks specific to their role. Output nothing else.\"\n    }\n  ],\n  \"max_tokens\": 1000\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        -80,
+        -32
+      ],
+      "id": "a330fab1-abb7-47be-b76c-e3bccb285509",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "FDLUeTg3BX15t8W9",
+          "name": "Header Auth account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "1ZG1wbsTdQ9Jlh_liucDYBsQqw1JqGxIJqykZNiRyPws",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1ZG1wbsTdQ9Jlh_liucDYBsQqw1JqGxIJqykZNiRyPws/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Timestamp": "={{ new Date().toISOString() }}",
+            "Full Name": "={{ $('Webhook').item.json.body.fullName }}",
+            "Email": "={{ $('Webhook').item.json.body.email }}",
+            "Department": "={{ $('Webhook').item.json.body.department }}",
+            "Position": "={{ $('Webhook').item.json.body.position }}",
+            "Start Date": "={{ $('Webhook').item.json.body.startDate }}",
+            "Manager": "={{ $('Webhook').item.json.body.manager }}",
+            "Status": "Onboarding"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Timestamp",
+              "displayName": "Timestamp",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Full Name",
+              "displayName": "Full Name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Department",
+              "displayName": "Department",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Position",
+              "displayName": "Position",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Start Date",
+              "displayName": "Start Date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Manager",
+              "displayName": "Manager",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        128,
+        -32
+      ],
+      "id": "adac0182-e589-4544-920c-380f1e291007",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "2wcfSy2KC2mt8d55",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Webhook').item.json.body.email }}",
+        "subject": "=Welcome to the team, {{ $('Webhook').item.json.body.fullName }}!",
+        "message": "=<h2>Welcome to the Team, {{ $('Webhook').item.json.body.fullName }}!</h2>\n\n<p>{{ $('HTTP Request').item.json.choices[0].message.content.split('---CHECKLIST---')[0].trim() }}</p>\n\n<h3>Your Onboarding Checklist</h3>\n{{ $('HTTP Request').item.json.choices[0].message.content.split('---CHECKLIST---')[1].trim() }}\n\n<br>\n<p>Best regards,<br><strong>HR Team</strong></p>",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        336,
+        -32
+      ],
+      "id": "52e1b27a-1f58-476f-8611-c6302f15a885",
+      "name": "Send a message",
+      "webhookId": "da9f2484-0710-482a-8bc4-4bb2c0c0880e",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "VJsJ8okDqm3Bosb6",
+          "name": "Gmail account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "f05e1b49-a80b-4678-9d3f-1e25311a200a",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "9ff5391ad418353a22df77ad9466c6ab2aee137f3cb803fde6b80132f8bb710b"
+  },
+  "id": "loeOEQnh5fP1Ujcd",
+  "tags": []
+}
