@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>HR Onboarding Agent</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --surface: #111111;
+      --surface2: #161616;
+      --border: #1e1e1e;
+      --accent: #c8f04d;
+      --accent-dim: #8aaa1f;
+      --text: #f0f0f0;
+      --text-muted: #555555;
+      --text-mid: #999999;
+    }
+
+    html, body { height: 100%; background: var(--bg); color: var(--text); font-family: 'DM Mono', monospace; overflow-x: hidden; }
+
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(200,240,77,0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(200,240,77,0.025) 1px, transparent 1px);
+      background-size: 48px 48px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .page { position: relative; z-index: 1; min-height: 100vh; display: flex; flex-direction: column; }
+
+    header {
+      padding: 1.5rem 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo { display: flex; align-items: center; gap: 0.6rem; }
+    .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--accent); animation: pulse 2.5s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.3;transform:scale(0.7)} }
+    .logo-text { font-size: 0.7rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); }
+
+    .header-right { display: flex; align-items: center; gap: 1rem; }
+    .status-badge { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--accent); border: 1px solid rgba(200,240,77,0.3); padding: 0.25rem 0.6rem; }
+    .version { font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.1em; }
+
+    main {
+      flex: 1;
+      display: grid;
+      grid-template-columns: 1fr 480px;
+      max-width: 1100px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 3.5rem 2.5rem;
+      gap: 4rem;
+      align-items: start;
+    }
+
+    .left { position: sticky; top: 3.5rem; display: flex; flex-direction: column; gap: 2rem; }
+
+    .left-title { opacity: 0; animation: fadeUp 0.5s ease 0.1s forwards; }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+
+    .eyebrow { font-size: 0.6rem; letter-spacing: 0.25em; text-transform: uppercase; color: var(--accent); margin-bottom: 1rem; }
+
+    h1 { font-family: 'DM Serif Display', serif; font-size: 3rem; line-height: 1.1; color: var(--text); }
+    h1 em { font-style: italic; color: var(--accent); }
+
+    .stats-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      opacity: 0;
+      animation: fadeUp 0.5s ease 0.25s forwards;
+    }
+
+    .stat { background: var(--surface); padding: 1.25rem 1.5rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .stat-value { font-family: 'DM Serif Display', serif; font-size: 2.2rem; color: var(--text); line-height: 1; }
+    .stat-value span { color: var(--accent); }
+    .stat-label { font-size: 0.62rem; color: var(--text-muted); letter-spacing: 0.12em; text-transform: uppercase; }
+
+    .pipeline {
+      border: 1px solid var(--border);
+      background: var(--surface);
+      padding: 1.5rem;
+      opacity: 0;
+      animation: fadeUp 0.5s ease 0.4s forwards;
+    }
+
+    .pipeline-title { font-size: 0.6rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 1.25rem; }
+
+    .pipeline-nodes { display: flex; align-items: center; }
+
+    .p-node { display: flex; flex-direction: column; align-items: center; gap: 0.5rem; flex: 1; }
+
+    .p-node-icon {
+      width: 36px; height: 36px;
+      border: 1px solid var(--border);
+      background: var(--bg);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.9rem;
+      position: relative;
+    }
+
+    .p-node-icon.active { border-color: var(--accent); }
+    .p-node-icon.active::after { content: ''; position: absolute; inset: -4px; border: 1px solid rgba(200,240,77,0.15); }
+
+    .p-node-label { font-size: 0.55rem; color: var(--text-muted); letter-spacing: 0.08em; text-align: center; text-transform: uppercase; }
+
+    .p-arrow { flex: 0 0 auto; width: 20px; display: flex; align-items: center; justify-content: center; padding-bottom: 1.2rem; }
+    .p-arrow svg { color: var(--border); }
+
+    .tech-stack {
+      display: flex; flex-wrap: wrap; gap: 0.5rem;
+      opacity: 0; animation: fadeUp 0.5s ease 0.55s forwards;
+    }
+
+    .tech-tag { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-muted); border: 1px solid var(--border); padding: 0.3rem 0.6rem; background: var(--surface); }
+
+    .form-panel { background: var(--surface); border: 1px solid var(--border); }
+
+    .form-header { padding: 1.75rem 2rem; border-bottom: 1px solid var(--border); }
+    .form-header h2 { font-family: 'DM Serif Display', serif; font-size: 1.3rem; color: var(--text); margin-bottom: 0.3rem; }
+    .form-header p { font-size: 0.65rem; color: var(--text-muted); letter-spacing: 0.05em; }
+
+    .form-body { padding: 1.75rem 2rem; }
+
+    .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.1rem; margin-bottom: 1.1rem; }
+
+    .field { display: flex; flex-direction: column; gap: 0.45rem; }
+
+    label { font-size: 0.6rem; letter-spacing: 0.15em; text-transform: uppercase; color: var(--text-muted); }
+
+    input, select {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      color: var(--text);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.8rem;
+      padding: 0.7rem 0.9rem;
+      outline: none;
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+      appearance: none;
+      -webkit-appearance: none;
+    }
+
+    input::placeholder { color: #333; }
+    input:focus, select:focus { border-color: var(--accent); box-shadow: 0 0 0 2px rgba(200,240,77,0.06); }
+    input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(0.3); cursor: pointer; }
+
+    select {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23444' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.9rem center;
+      padding-right: 2.2rem;
+      cursor: pointer;
+    }
+
+    select option { background: #111; }
+
+    .form-divider { height: 1px; background: var(--border); margin: 1.25rem 0; }
+
+    .submit-btn {
+      width: 100%;
+      background: var(--accent);
+      color: #0a0a0a;
+      border: none;
+      font-family: 'DM Mono', monospace;
+      font-size: 0.72rem;
+      font-weight: 500;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      padding: 0.95rem;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+
+    .submit-btn:hover:not(:disabled) { background: #d4f55a; }
+    .submit-btn:active:not(:disabled) { transform: scale(0.99); }
+    .submit-btn:disabled { background: var(--accent-dim); cursor: not-allowed; opacity: 0.7; }
+
+    .spinner { width: 12px; height: 12px; border: 1.5px solid rgba(0,0,0,0.3); border-top-color: #0a0a0a; border-radius: 50%; animation: spin 0.6s linear infinite; display: none; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .error-msg { font-size: 0.68rem; color: #ff5555; margin-top: 0.75rem; display: none; padding: 0.75rem; background: rgba(255,85,85,0.05); border: 1px solid rgba(255,85,85,0.15); }
+
+    .success-screen { display: none; flex-direction: column; align-items: center; text-align: center; padding: 2.5rem 2rem; }
+
+    .success-icon {
+      width: 52px; height: 52px;
+      border: 1px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      margin: 0 auto 1.5rem;
+      animation: scaleIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+    }
+
+    @keyframes scaleIn { from{transform:scale(0);opacity:0} to{transform:scale(1);opacity:1} }
+
+    .success-icon svg { color: var(--accent); }
+    .success-screen h3 { font-family: 'DM Serif Display', serif; font-size: 1.6rem; color: var(--text); margin-bottom: 0.5rem; }
+    .success-screen > p { font-size: 0.72rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 1.5rem; }
+
+    .success-details { background: var(--bg); border: 1px solid var(--border); width: 100%; margin-bottom: 1.5rem; }
+
+    .success-details .row { display: flex; justify-content: space-between; padding: 0.55rem 1rem; border-bottom: 1px solid var(--border); font-size: 0.7rem; }
+    .success-details .row:last-child { border-bottom: none; }
+    .success-details .key { color: var(--text-muted); }
+    .success-details .val { color: var(--accent); }
+
+    .reset-btn {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      padding: 0.6rem 1.25rem;
+      cursor: pointer;
+      transition: border-color 0.15s, color 0.15s;
+      text-transform: uppercase;
+    }
+
+    .reset-btn:hover { border-color: var(--text-mid); color: var(--text); }
+
+    footer { border-top: 1px solid var(--border); padding: 1.25rem 2.5rem; display: flex; justify-content: space-between; align-items: center; }
+    footer span { font-size: 0.6rem; color: var(--text-muted); letter-spacing: 0.08em; }
+    footer a { font-size: 0.6rem; color: var(--accent); text-decoration: none; letter-spacing: 0.08em; }
+    footer a:hover { text-decoration: underline; }
+
+    @media (max-width: 860px) {
+      main { grid-template-columns: 1fr; gap: 2rem; padding: 2rem 1.5rem; }
+      .left { position: static; }
+      h1 { font-size: 2.2rem; }
+      header, footer { padding: 1.25rem 1.5rem; }
+      .form-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="logo">
+      <div class="logo-dot"></div>
+      <span class="logo-text">HR Onboarding Agent</span>
+    </div>
+    <div class="header-right">
+      <span class="version">v1.0</span>
+      <div class="status-badge">Active</div>
+    </div>
+  </header>
+
+  <main>
+    <div class="left">
+      <div class="left-title">
+        <p class="eyebrow">Automated HR Workflow</p>
+        <h1>Onboard <em>faster.</em><br>Zero manual work.</h1>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <div class="stat-value" id="statOnboarded">0</div>
+          <div class="stat-label">Employees Onboarded</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value"><span>~</span>3s</div>
+          <div class="stat-label">Avg. Process Time</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value"><span>4</span></div>
+          <div class="stat-label">Automated Steps</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value"><span>0</span></div>
+          <div class="stat-label">Manual Actions</div>
+        </div>
+      </div>
+
+      <div class="pipeline">
+        <div class="pipeline-title">Workflow Pipeline</div>
+        <div class="pipeline-nodes">
+          <div class="p-node">
+            <div class="p-node-icon active">📋</div>
+            <div class="p-node-label">Form</div>
+          </div>
+          <div class="p-arrow">
+            <svg width="16" height="10" viewBox="0 0 16 10" fill="none"><path d="M0 5h14M10 1l4 4-4 4" stroke="currentColor" stroke-width="1.2"/></svg>
+          </div>
+          <div class="p-node">
+            <div class="p-node-icon active">🤖</div>
+            <div class="p-node-label">Groq AI</div>
+          </div>
+          <div class="p-arrow">
+            <svg width="16" height="10" viewBox="0 0 16 10" fill="none"><path d="M0 5h14M10 1l4 4-4 4" stroke="currentColor" stroke-width="1.2"/></svg>
+          </div>
+          <div class="p-node">
+            <div class="p-node-icon active">📧</div>
+            <div class="p-node-label">Gmail</div>
+          </div>
+          <div class="p-arrow">
+            <svg width="16" height="10" viewBox="0 0 16 10" fill="none"><path d="M0 5h14M10 1l4 4-4 4" stroke="currentColor" stroke-width="1.2"/></svg>
+          </div>
+          <div class="p-node">
+            <div class="p-node-icon active">📊</div>
+            <div class="p-node-label">Sheets</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tech-stack">
+        <span class="tech-tag">n8n</span>
+        <span class="tech-tag">Groq / Llama 3.3</span>
+        <span class="tech-tag">Gmail API</span>
+        <span class="tech-tag">Google Sheets</span>
+        <span class="tech-tag">FastAPI</span>
+      </div>
+    </div>
+
+    <div class="form-panel">
+      <div id="formView">
+        <div class="form-header">
+          <h2>New Employee</h2>
+          <p>All fields required — workflow triggers on submit</p>
+        </div>
+        <div class="form-body">
+          <div class="form-grid">
+            <div class="field">
+              <label for="fullName">Full Name</label>
+              <input type="text" id="fullName" placeholder="John Silva" autocomplete="off"/>
+            </div>
+            <div class="field">
+              <label for="email">Email Address</label>
+              <input type="email" id="email" placeholder="john@company.com" autocomplete="off"/>
+            </div>
+            <div class="field">
+              <label for="department">Department</label>
+              <select id="department">
+                <option value="" disabled selected>Select department</option>
+                <option>Engineering</option>
+                <option>Marketing</option>
+                <option>Finance</option>
+                <option>Human Resources</option>
+                <option>Operations</option>
+                <option>Sales</option>
+                <option>Product</option>
+                <option>Design</option>
+                <option>Legal</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="position">Position</label>
+              <input type="text" id="position" placeholder="Software Engineer" autocomplete="off"/>
+            </div>
+            <div class="field">
+              <label for="startDate">Start Date</label>
+              <input type="date" id="startDate"/>
+            </div>
+            <div class="field">
+              <label for="manager">Reporting Manager</label>
+              <input type="text" id="manager" placeholder="Sarah Brown" autocomplete="off"/>
+            </div>
+          </div>
+          <div class="form-divider"></div>
+          <button class="submit-btn" id="submitBtn" onclick="submitForm()">
+            <span class="spinner" id="spinner"></span>
+            <span id="btnText">Trigger Onboarding</span>
+          </button>
+          <div class="error-msg" id="errorMsg"></div>
+        </div>
+      </div>
+
+      <div class="success-screen" id="successView">
+        <div class="success-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <h3>Workflow complete.</h3>
+        <p>Welcome email sent. Onboarding checklist generated. HR sheet updated.</p>
+        <div class="success-details" id="successDetails"></div>
+        <button class="reset-btn" onclick="resetForm()">Onboard another employee →</button>
+      </div>
+    </div>
+  </main>
+
+  <footer>
+    <span>Built by Malanka Tharula — n8n + Groq + Gmail + Sheets</span>
+    <a href="https://github.com/malankatharula" target="_blank">github.com/malankatharula</a>
+  </footer>
+
+</div>
+
+<script>
+  const WEBHOOK_URL = 'http://localhost:5678/webhook/hr-onboarding';
+
+  const count = parseInt(localStorage.getItem('onboardCount') || '0');
+  document.getElementById('statOnboarded').textContent = count;
+
+  async function submitForm() {
+    const fullName   = document.getElementById('fullName').value.trim();
+    const email      = document.getElementById('email').value.trim();
+    const department = document.getElementById('department').value;
+    const position   = document.getElementById('position').value.trim();
+    const startDate  = document.getElementById('startDate').value;
+    const manager    = document.getElementById('manager').value.trim();
+
+    if (!fullName || !email || !department || !position || !startDate || !manager) {
+      showError('All fields are required.'); return;
+    }
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      showError('Please enter a valid email address.'); return;
+    }
+
+    setLoading(true);
+    hideError();
+
+    try {
+      const res = await fetch(WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fullName, email, department, position, startDate, manager })
+      });
+
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const newCount = count + 1;
+      localStorage.setItem('onboardCount', newCount);
+      document.getElementById('statOnboarded').textContent = newCount;
+
+      showSuccess({ fullName, email, department, position, startDate, manager });
+    } catch (err) {
+      showError('Could not reach the workflow. Ensure n8n is running and the workflow is published.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function showSuccess(data) {
+    document.getElementById('formView').style.display = 'none';
+    document.getElementById('successView').style.display = 'flex';
+    document.getElementById('successDetails').innerHTML = `
+      <div class="row"><span class="key">Name</span><span class="val">${data.fullName}</span></div>
+      <div class="row"><span class="key">Email</span><span class="val">${data.email}</span></div>
+      <div class="row"><span class="key">Department</span><span class="val">${data.department}</span></div>
+      <div class="row"><span class="key">Position</span><span class="val">${data.position}</span></div>
+      <div class="row"><span class="key">Start Date</span><span class="val">${data.startDate}</span></div>
+      <div class="row"><span class="key">Manager</span><span class="val">${data.manager}</span></div>
+    `;
+  }
+
+  function resetForm() {
+    document.getElementById('successView').style.display = 'none';
+    document.getElementById('formView').style.display = 'block';
+    ['fullName','email','position','startDate','manager'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('department').selectedIndex = 0;
+    hideError();
+  }
+
+  function setLoading(on) {
+    document.getElementById('submitBtn').disabled = on;
+    document.getElementById('spinner').style.display = on ? 'block' : 'none';
+    document.getElementById('btnText').textContent = on ? 'Processing...' : 'Trigger Onboarding';
+  }
+
+  function showError(msg) {
+    const el = document.getElementById('errorMsg');
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+
+  function hideError() {
+    document.getElementById('errorMsg').style.display = 'none';
+  }
+</script>
+</body>
+</html>
